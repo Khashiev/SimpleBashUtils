@@ -49,6 +49,8 @@ Flags grepReadFlags(int argc, char **argv) {
 }
 
 void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg) {
+  (void)filename;  // temp
+  (void)flags;     // temp
   char *line = 0;
   size_t length = 0;
   regmatch_t match;
