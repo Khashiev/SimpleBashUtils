@@ -15,11 +15,12 @@ typedef struct {
   bool count;
   bool filesMatch;
   bool numberLine;
+  bool printMatched;
 } Flags;
 
 Flags grepReadFlags(int argc, char **argv) {
-  Flags flags = {0, false, false, false, false};
-  int currentFlag = getopt(argc, argv, "eivcln");
+  Flags flags = {0, false, false, false, false, false};
+  int currentFlag = getopt(argc, argv, "eivclno");
 
   while (currentFlag != -1) {
     switch (currentFlag) {
@@ -41,14 +42,18 @@ Flags grepReadFlags(int argc, char **argv) {
       case 'n':
         flags.numberLine = true;
         break;
+      case 'o':
+        flags.printMatched = true;
+        break;
     }
 
-    currentFlag = getopt(argc, argv, "eivcln");
+    currentFlag = getopt(argc, argv, "eivclno");
   }
   return flags;
 }
 
-void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg) {
+void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg,
+               int count_file) {
   (void)filename;  // temp
   (void)flags;     // temp
   char *line = 0;
@@ -62,23 +67,47 @@ void GrepCount(FILE *file, char const *filename, Flags flags, regex_t *preg) {
     }
   }
 
-  printf("%i\n", count);
+  if (count_file >= 2)
+    printf("%s:%i\n", filename, count);
+  else
+    printf("%i\n", count);
+
   free(line);
 }
 
-void GrepFile(FILE *file, Flags flags, regex_t *preg) {
+void GrepFile(FILE *file, Flags flags, regex_t *preg, char *filename) {
   char *line = 0;
   size_t length = 0;
   regmatch_t match;
+  int count = 0;
 
   while (getline(&line, &length, file) > 0) {
+    count++;
     if (flags.invert) {
       if (regexec(preg, line, 1, &match, 0)) {
-        printf("%s", line);
+        if (flags.printMatched)
+          ;
+        else {
+          if (flags.numberLine)
+            printf("%s:%i:%s", filename, count, line);
+          else
+            printf("%s", line);
+        }
       }
     } else {
       if (!regexec(preg, line, 1, &match, 0)) {
-        printf("%s", line);
+        if (flags.printMatched) {
+          if (flags.numberLine)
+            printf("%s:%i:%.*s\n", filename, count, match.rm_eo - match.rm_so,
+                   line + match.rm_so);
+          else
+            printf("%.*s\n", match.rm_eo - match.rm_so, line + match.rm_so);
+        } else {
+          if (flags.numberLine)
+            printf("%i:%s", count, line);
+          else
+            printf("%s", line);
+        }
       }
     }
   }
@@ -89,6 +118,7 @@ void GrepFile(FILE *file, Flags flags, regex_t *preg) {
 void Grep(int argc, char *argv[], Flags flags) {
   char **pattern = &argv[1];
   char **end = &argv[argc];
+  int count = 0;
   regex_t preg_storage;
   regex_t *preg = &preg_storage;
 
@@ -107,6 +137,13 @@ void Grep(int argc, char *argv[], Flags flags) {
 
   for (char **filename = pattern + 1; filename != end; ++filename) {
     if (**filename == '-') continue;
+    count++;
+
+    if (count >= 2) break;
+  }
+
+  for (char **filename = pattern + 1; filename != end; ++filename) {
+    if (**filename == '-') continue;
 
     FILE *file = fopen(*filename, "rb");
     if (errno) {
@@ -116,9 +153,9 @@ void Grep(int argc, char *argv[], Flags flags) {
     }
 
     if (flags.count) {
-      GrepCount(file, *filename, flags, preg);
+      GrepCount(file, *filename, flags, preg, count);
     } else {
-      GrepFile(file, flags, preg);
+      GrepFile(file, flags, preg, *filename);
     }
 
     fclose(file);
