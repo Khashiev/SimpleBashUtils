@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 typedef struct {
@@ -105,6 +106,17 @@ void GrepFile(FILE *file, Flags flags, regex_t *preg, char *filename) {
         } else {
           if (flags.numberLine)
             printf("%i:%s", count, line);
+          else if (flags.filesMatch) {
+            char fn[30];
+            if (!strcmp(fn, filename)) continue;
+
+            printf("%s\n", filename);
+
+            for (int i = 0; i < 30; i++) {
+              fn[i] = filename[i];
+            }
+          }
+
           else
             printf("%s", line);
         }
@@ -157,6 +169,10 @@ void Grep(int argc, char *argv[], Flags flags) {
     } else {
       GrepFile(file, flags, preg, *filename);
     }
+
+    // if (flags.filesMatch) {
+    //   GrepFilesMatch();
+    // }
 
     fclose(file);
   }
