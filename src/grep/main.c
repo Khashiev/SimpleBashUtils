@@ -170,10 +170,6 @@ void Grep(int argc, char *argv[], Flags flags) {
       GrepFile(file, flags, preg, *filename);
     }
 
-    // if (flags.filesMatch) {
-    //   GrepFilesMatch();
-    // }
-
     fclose(file);
   }
 }

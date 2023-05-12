@@ -1,4 +1,4 @@
-all: cat/s21_cat grep/s21_grep
+all: s21_cat s21_grep
 
 s21_cat: 
 	gcc -Wall -Werror -Wextra cat/main.c -o cat/s21_cat
@@ -9,4 +9,5 @@ s21_grep:
 clean:
 	rm -rf cat/s21_cat grep/s21_grep
 
-rebuild: clean all
+rebuild: 
+	clean all
